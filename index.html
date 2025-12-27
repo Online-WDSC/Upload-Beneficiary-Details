@@ -31,14 +31,13 @@ body{
   padding:26px;
   border-radius:16px;
   box-shadow:0 15px 40px rgba(0,0,0,.12);
-  position:relative;
 }
 .box::before{
   content:"";
-  position:absolute;
-  top:0; left:0; right:0;
+  display:block;
   height:6px;
   background:linear-gradient(90deg,var(--primary),var(--secondary),var(--accent));
+  margin:-26px -26px 20px;
 }
 h2{
   text-align:center;
@@ -46,30 +45,21 @@ h2{
   margin-bottom:22px;
   display:flex;
   justify-content:center;
-  align-items:center;
   gap:10px;
-  font-size:22px;
 }
 label{
   font-size:13px;
-  color:#334155;
   font-weight:600;
   margin-top:12px;
   display:block;
 }
-select,input{
+input,select{
   width:100%;
   padding:11px;
   margin:6px 0;
   border-radius:9px;
   border:1px solid var(--border);
   background:#f9fbff;
-  font-size:14px;
-}
-select:focus,input:focus{
-  outline:none;
-  border-color:var(--secondary);
-  box-shadow:0 0 0 2px rgba(37,99,235,.15);
 }
 button{
   width:100%;
@@ -79,17 +69,7 @@ button{
   background:var(--secondary);
   color:#fff;
   font-weight:600;
-  font-size:15px;
-  cursor:pointer;
   border:none;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:8px;
-  box-shadow:0 6px 14px rgba(37,99,235,.35);
-}
-button:hover{
-  background:#1d4ed8;
 }
 .success{
   margin-top:14px;
@@ -102,47 +82,35 @@ button:hover{
   padding:8px;
   border-radius:8px;
 }
-.footer-note{
-  margin-top:18px;
-  font-size:12px;
-  text-align:center;
-  color:#64748b;
-}
 </style>
 </head>
 
 <body>
 <div class="box">
 
-<h2>
-  <i class="fa-solid fa-people-group"></i>
-  Upload Beneficiary Details
-</h2>
+<h2><i class="fa-solid fa-people-group"></i> Upload Beneficiary Details</h2>
 
 <label><i class="fa-solid fa-magnifying-glass"></i> Search Work</label>
 <input type="text" id="workSearch" placeholder="Type to filter work list">
 
 <label><i class="fa-solid fa-list-check"></i> Select Work</label>
-<input list="workList" id="workName" placeholder="Select work">
-<datalist id="workList"></datalist>
-
-<select id="workSelect" style="display:none;">
-  <option value="">Select work</option>
+<select id="workName">
+  <option value="">Loading works…</option>
 </select>
 
-<label><i class="fa-solid fa-id-card"></i> Beneficiary ID Type</label>
+<label>Beneficiary ID Type</label>
 <select id="beneficiaryType">
   <option>Ration Card</option>
   <option>Bhamashah / Janaadhar</option>
 </select>
 
-<label><i class="fa-solid fa-hashtag"></i> ID Number</label>
+<label>ID Number</label>
 <input type="text" id="idNumber">
 
-<label><i class="fa-solid fa-user"></i> Beneficiary Name</label>
+<label>Beneficiary Name</label>
 <input type="text" id="beneficiaryName">
 
-<label><i class="fa-solid fa-layer-group"></i> Category</label>
+<label>Category</label>
 <select id="category">
   <option>SC</option>
   <option>ST</option>
@@ -151,114 +119,77 @@ button:hover{
   <option>Other</option>
 </select>
 
-<label><i class="fa-solid fa-image"></i> ID Photo – Front Side</label>
-<input type="file" accept="image/*" capture="environment" onchange="readFront(this)">
+<label>ID Photo – Front</label>
+<input type="file" accept="image/*" onchange="readFront(this)">
 
-<label><i class="fa-solid fa-image"></i> ID Photo – Back Side</label>
-<input type="file" accept="image/*" capture="environment" onchange="readBack(this)">
+<label>ID Photo – Back</label>
+<input type="file" accept="image/*" onchange="readBack(this)">
 
-<label><i class="fa-solid fa-file-pdf"></i> Upload Document (PDF if any)</label>
+<label>Upload PDF</label>
 <input type="file" accept="application/pdf" onchange="readPdf(this)">
 
-<button onclick="submitForm()">
-  <i class="fa-solid fa-cloud-arrow-up"></i>
-  Save Entry
-</button>
-
+<button onclick="submitForm()">Save Entry</button>
 <div class="success" id="msg"></div>
-
-<div class="footer-note">
-🌱 e-WorkMS 🌱 Developed By – 👷‍♂️ Er. Aman Godara, AEn, WDSC, GoR
-</div>
 
 </div>
 
 <script>
-/* ================= CONFIG ================= */
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbySfRHPqB5sY_N4QeLyfXffGaHJQcpT-2iHU03wapC6fpSKTt5AQWthe7ArdQr-DReZgQ/exec";
+"https://script.google.com/macros/s/AKfycbySfRHPqB5sY_N4QeLyfXffGaHJQcpT-2iHU03wapC6fpSKTt5AQWthe7ArdQr-DReZgQ/exec";
 
-/* ================= STATE ================= */
 let frontPhoto=null, backPhoto=null, pdfFile=null;
 let allWorks=[], usedBeneficiaries=[];
 
 const workSearch=document.getElementById("workSearch");
-const workList=document.getElementById("workList");
-const workInput=document.getElementById("workName");
-const workSelect=document.getElementById("workSelect");
+const workSelect=document.getElementById("workName");
 const msg=document.getElementById("msg");
 
-/* ================= LOAD WORK LIST ================= */
+/* LOAD WORKS */
 fetch(API_URL+"?api=1&action=getWorks")
 .then(r=>r.json())
 .then(list=>{
   allWorks=list||[];
-  renderWorks(allWorks);
+  render(allWorks);
 });
 
-/* ================= LOAD USED ================= */
-fetch(API_URL+"?api=1&action=getUploaded")
-.then(r=>r.json())
-.then(list=>usedBeneficiaries=list||[]);
-
-function renderWorks(arr){
-  workList.innerHTML="";
-  workSelect.innerHTML='<option value="">Select work</option>';
-
+function render(arr){
+  workSelect.innerHTML='<option value="">-- Select Work --</option>';
   arr.forEach(w=>{
     const o=document.createElement("option");
-    o.value=w;
-    workList.appendChild(o);
-
-    const s=document.createElement("option");
-    s.value=w; s.textContent=w;
-    workSelect.appendChild(s);
+    o.value=w; o.textContent=w;
+    workSelect.appendChild(o);
   });
 }
 
-/* ================= SEARCH ================= */
+/* SEARCH FILTER */
 workSearch.oninput=()=>{
   const q=workSearch.value.toLowerCase();
-  renderWorks(allWorks.filter(w=>w.toLowerCase().includes(q)));
+  render(allWorks.filter(w=>w.toLowerCase().includes(q)));
 };
 
-/* ================= MOBILE FIX ================= */
-if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
-  workInput.style.display="none";
-  workList.style.display="none";
-  workSelect.style.display="block";
-  workSelect.onchange=()=>workInput.value=workSelect.value;
-}
-
-/* ================= FILE READERS ================= */
-function readFront(i){readFile(i,f=>frontPhoto=f);}
-function readBack(i){readFile(i,f=>backPhoto=f);}
-function readPdf(i){readFile(i,f=>pdfFile=f);}
-function readFile(i,cb){
+/* FILES */
+function readFront(i){read(i,v=>frontPhoto=v);}
+function readBack(i){read(i,v=>backPhoto=v);}
+function readPdf(i){read(i,v=>pdfFile=v);}
+function read(i,cb){
   if(!i.files[0])return;
   const r=new FileReader();
   r.onload=e=>cb(e.target.result.split(",")[1]);
   r.readAsDataURL(i.files[0]);
 }
 
-/* ================= SUBMIT ================= */
+/* SUBMIT */
 function submitForm(){
-  if(!workInput.value||!idNumber.value){
-    alert("Work Name & ID Number required"); return;
+  if(!workSelect.value||!idNumber.value){
+    alert("Required fields missing");return;
   }
-
-  const key=beneficiaryType.value+"|"+idNumber.value;
-  if(usedBeneficiaries.includes(key)){
-    alert("Already uploaded"); return;
-  }
-
   msg.innerText="Uploading…";
 
   fetch(API_URL,{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
-      workName:workInput.value,
+      workName:workSelect.value,
       beneficiaryType:beneficiaryType.value,
       idNumber:idNumber.value,
       beneficiaryName:beneficiaryName.value,
@@ -270,22 +201,11 @@ function submitForm(){
   })
   .then(r=>r.json())
   .then(res=>{
-    if(res.status==="SUCCESS"){
-      msg.innerText="✔ Entry Saved Successfully";
-      usedBeneficiaries.push(key);
-      workSearch.value="";
-      workInput.value="";
-      workSelect.value="";
-      idNumber.value="";
-      beneficiaryName.value="";
-      frontPhoto=backPhoto=pdfFile=null;
-    }else{
-      msg.innerText="❌ "+(res.message||"Failed");
-    }
+    msg.innerText = res.status==="SUCCESS"
+      ? "✔ Entry Saved Successfully"
+      : "❌ "+(res.message||"Failed");
   })
-  .catch(()=>{
-    msg.innerText="❌ Server error";
-  });
+  .catch(()=>msg.innerText="❌ Server error");
 }
 </script>
 </body>
