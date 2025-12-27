@@ -153,8 +153,9 @@ button{
 </div>
 
 <script>
-/* 🔗 PASTE YOUR APPS SCRIPT WEB APP URL HERE */
-const API_URL = "https://script.google.com/macros/s/AKfycbySfRHPqB5sY_N4QeLyfXffGaHJQcpT-2iHU03wapC6fpSKTt5AQWthe7ArdQr-DReZgQ";
+/* 🔗 BASE APPS SCRIPT URL (no /exec duplication) */
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbySfRHPqB5sY_N4QeLyfXffGaHJQcpT-2iHU03wapC6fpSKTt5AQWthe7ArdQr-DReZgQ/exec";
 
 let frontPhoto=null, backPhoto=null, pdfFile=null;
 let allWorks=[], usedBeneficiaries=[];
@@ -163,18 +164,20 @@ const workList=document.getElementById("workList");
 const workSelect=document.getElementById("workSelect");
 const workSearch=document.getElementById("workSearch");
 
-/* 📥 LOAD WORK LIST */
-fetch(API_URL+"?action=getWorks")
+/* 📥 LOAD WORK LIST (FIXED) */
+fetch(API_URL+"?api=1&action=getWorks")
 .then(r=>r.json())
 .then(list=>{
-  allWorks=list||[];
+  allWorks = Array.isArray(list) ? list : [];
   renderWorks(allWorks);
 });
 
-/* 📥 LOAD USED BENEFICIARIES */
-fetch(API_URL+"?action=getUsed")
+/* 📥 LOAD USED BENEFICIARIES (FIXED NAME) */
+fetch(API_URL+"?api=1&action=getUploaded")
 .then(r=>r.json())
-.then(d=>usedBeneficiaries=d||[]);
+.then(d=>{
+  usedBeneficiaries = Array.isArray(d) ? d : [];
+});
 
 function renderWorks(arr){
   workList.innerHTML="";
@@ -185,18 +188,20 @@ function renderWorks(arr){
     workList.appendChild(o);
 
     const s=document.createElement("option");
-    s.value=w; s.textContent=w;
+    s.value=w;
+    s.textContent=w;
     workSelect.appendChild(s);
   });
 }
 
+/* 🔍 SEARCH FILTER */
 workSearch.oninput=()=>{
   const q=workSearch.value.toLowerCase();
   renderWorks(allWorks.filter(w=>w.toLowerCase().includes(q)));
 };
 
-/* 📱 Mobile dropdown fix */
-if(/Android|iPhone/i.test(navigator.userAgent)){
+/* 📱 MOBILE DROPDOWN FIX */
+if(/Android|iPhone|iPad/i.test(navigator.userAgent)){
   workSelect.style.display="block";
   workList.style.display="none";
   workSelect.onchange=()=>workName.value=workSelect.value;
@@ -216,8 +221,16 @@ function readFile(i,cb){
 /* 🚀 SUBMIT */
 function submitForm(){
   if(!workName.value||!idNumber.value){
-    alert("Required fields missing");return;
+    alert("Required fields missing");
+    return;
   }
+
+  const key = beneficiaryType.value+"|"+idNumber.value;
+  if(usedBeneficiaries.includes(key)){
+    alert("This beneficiary is already uploaded");
+    return;
+  }
+
   msg.innerText="Uploading…";
 
   fetch(API_URL,{
@@ -236,11 +249,14 @@ function submitForm(){
   })
   .then(r=>r.json())
   .then(res=>{
-    msg.innerText=res.status==="SUCCESS"
-      ?"✔ Entry Saved Successfully"
-      :"❌ "+res.message;
+    msg.innerText =
+      res && res.status==="SUCCESS"
+      ? "✔ Entry Saved Successfully"
+      : "❌ " + (res.message || "Failed");
   })
-  .catch(()=>msg.innerText="❌ Server error");
+  .catch(()=>{
+    msg.innerText="❌ Server error";
+  });
 }
 </script>
 </body>
