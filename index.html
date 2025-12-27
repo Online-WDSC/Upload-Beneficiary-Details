@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -31,41 +31,34 @@ body{
   padding:26px;
   border-radius:16px;
   box-shadow:0 15px 40px rgba(0,0,0,.12);
-  position:relative;
 }
 .box::before{
   content:"";
-  position:absolute;
-  top:0; left:0; right:0;
+  display:block;
   height:6px;
   background:linear-gradient(90deg,var(--primary),var(--secondary),var(--accent));
-  pointer-events:none; /* 🔥 IMPORTANT FIX */
+  margin:-26px -26px 20px;
 }
 h2{
   text-align:center;
   color:var(--primary);
-  margin-bottom:22px;
   display:flex;
   justify-content:center;
-  align-items:center;
   gap:10px;
-  font-size:22px;
 }
 label{
   font-size:13px;
-  color:#334155;
   font-weight:600;
   margin-top:12px;
   display:block;
 }
-select,input{
+input,select{
   width:100%;
   padding:11px;
   margin:6px 0;
   border-radius:9px;
   border:1px solid var(--border);
   background:#f9fbff;
-  font-size:14px;
 }
 button{
   width:100%;
@@ -76,6 +69,7 @@ button{
   color:#fff;
   font-weight:600;
   border:none;
+  cursor:pointer;
 }
 .success{
   margin-top:14px;
@@ -96,12 +90,12 @@ button{
 
 <h2><i class="fa-solid fa-people-group"></i> Upload Beneficiary Details</h2>
 
-<label>Search Work</label>
+<label><i class="fa-solid fa-magnifying-glass"></i> Search Work</label>
 <input type="text" id="workSearch" placeholder="Type to filter work list">
 
-<label>Select Work</label>
+<label><i class="fa-solid fa-list-check"></i> Select Work</label>
 <select id="workName">
-  <option value="">Loading…</option>
+  <option value="">Loading works…</option>
 </select>
 
 <label>Beneficiary ID Type</label>
@@ -134,63 +128,52 @@ button{
 <label>Upload PDF</label>
 <input type="file" accept="application/pdf" onchange="readPdf(this)">
 
-<button onclick="submitForm()">Save Entry</button>
+<button onclick="submitForm()">
+  <i class="fa-solid fa-cloud-arrow-up"></i> Save Entry
+</button>
+
 <div class="success" id="msg"></div>
 
 </div>
 
 <script>
-/* ========= AUTO PLATFORM DETECT ========= */
-const IS_APPS_SCRIPT = typeof google !== "undefined"
-  && google.script
-  && google.script.run;
-
-/* ========= API URL (GitHub use) ========= */
+/* ===== CONFIG ===== */
 const API_URL =
 "https://script.google.com/macros/s/AKfycbySfRHPqB5sY_N4QeLyfXffGaHJQcpT-2iHU03wapC6fpSKTt5AQWthe7ArdQr-DReZgQ/exec";
 
-/* ========= STATE ========= */
+/* ===== STATE ===== */
 let frontPhoto=null, backPhoto=null, pdfFile=null;
-let allWorks=[], usedBeneficiaries=[];
+let allWorks=[];
 
-const workSelect=document.getElementById("workName");
 const workSearch=document.getElementById("workSearch");
+const workSelect=document.getElementById("workName");
 const msg=document.getElementById("msg");
 
-/* ========= LOAD WORK LIST ========= */
-function loadWorks(){
-  if(IS_APPS_SCRIPT){
-    google.script.run.withSuccessHandler(initWorks)
-      .getWorkListBeneficiaries();
-  }else{
-    fetch(API_URL+"?api=1&action=getWorks")
-      .then(r=>r.json())
-      .then(initWorks);
-  }
-}
-
-function initWorks(list){
-  allWorks=list||[];
+/* ===== LOAD WORK LIST ===== */
+fetch(API_URL+"?api=1&action=getWorks")
+.then(r=>r.json())
+.then(list=>{
+  allWorks=list || [];
   render(allWorks);
-}
+})
+.catch(()=>workSelect.innerHTML='<option>Error loading</option>');
 
 function render(arr){
   workSelect.innerHTML='<option value="">-- Select Work --</option>';
   arr.forEach(w=>{
     const o=document.createElement("option");
-    o.value=w;
-    o.textContent=w;
+    o.value=w; o.textContent=w;
     workSelect.appendChild(o);
   });
 }
 
-/* ========= SEARCH ========= */
+/* ===== SEARCH ===== */
 workSearch.oninput=()=>{
   const q=workSearch.value.toLowerCase();
   render(allWorks.filter(w=>w.toLowerCase().includes(q)));
 };
 
-/* ========= FILE READ ========= */
+/* ===== FILE READERS ===== */
 function readFront(i){read(i,v=>frontPhoto=v);}
 function readBack(i){read(i,v=>backPhoto=v);}
 function readPdf(i){read(i,v=>pdfFile=v);}
@@ -201,49 +184,39 @@ function read(i,cb){
   r.readAsDataURL(i.files[0]);
 }
 
-/* ========= SUBMIT ========= */
+/* ===== SUBMIT ===== */
 function submitForm(){
   if(!workSelect.value||!idNumber.value){
-    alert("Required fields missing"); return;
+    alert("Required fields missing");
+    return;
   }
-
   msg.innerText="Uploading…";
 
-  const payload={
-    workName:workSelect.value,
-    beneficiaryType:beneficiaryType.value,
-    idNumber:idNumber.value,
-    beneficiaryName:beneficiaryName.value,
-    category:category.value,
-    frontPhotoBase64:frontPhoto,
-    backPhotoBase64:backPhoto,
-    pdfBase64:pdfFile
-  };
-
-  if(IS_APPS_SCRIPT){
-    google.script.run.withSuccessHandler(r=>{
-      msg.innerText="✔ Entry Saved Successfully";
-    }).uploadAndSaveBeneficiary(
-      payload,frontPhoto,backPhoto,pdfFile
-    );
-  }else{
-    fetch(API_URL,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify(payload)
+  fetch(API_URL,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      workName:workSelect.value,
+      beneficiaryType:beneficiaryType.value,
+      idNumber:idNumber.value,
+      beneficiaryName:beneficiaryName.value,
+      category:category.value,
+      frontPhotoBase64:frontPhoto,
+      backPhotoBase64:backPhoto,
+      pdfBase64:pdfFile
     })
-    .then(r=>r.json())
-    .then(r=>{
-      msg.innerText = r.status==="SUCCESS"
-        ? "✔ Entry Saved Successfully"
-        : "❌ "+r.message;
-    })
-    .catch(()=>msg.innerText="❌ Server error");
-  }
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    msg.innerText =
+      res.status==="SUCCESS"
+      ? "✔ Entry Saved Successfully"
+      : "❌ "+(res.message||"Failed");
+  })
+  .catch(()=>{
+    msg.innerText="❌ Server error";
+  });
 }
-
-/* INIT */
-loadWorks();
 </script>
 </body>
 </html>
