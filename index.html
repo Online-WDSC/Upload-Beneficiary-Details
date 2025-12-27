@@ -192,31 +192,16 @@ function submitForm(){
   }
   msg.innerText="Uploading…";
 
-  fetch(API_URL,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      workName:workSelect.value,
-      beneficiaryType:beneficiaryType.value,
-      idNumber:idNumber.value,
-      beneficiaryName:beneficiaryName.value,
-      category:category.value,
-      frontPhotoBase64:frontPhoto,
-      backPhotoBase64:backPhoto,
-      pdfBase64:pdfFile
-    })
-  })
-  .then(r=>r.json())
-  .then(res=>{
-    msg.innerText =
-      res.status==="SUCCESS"
-      ? "✔ Entry Saved Successfully"
-      : "❌ "+(res.message||"Failed");
-  })
-  .catch(()=>{
-    msg.innerText="❌ Server error";
-  });
-}
+ fetch(API_URL,{
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({ test:"ok" })
+})
+.then(r=>r.text())
+.then(alert)
+.catch(err=>alert("ERROR"));
+
 </script>
 </body>
 </html>
+
