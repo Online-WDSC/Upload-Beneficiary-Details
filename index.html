@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base target="_top">
 
 <title>Beneficiary Entry</title>
 
@@ -67,6 +66,11 @@ select,input{
   background:#f9fbff;
   font-size:14px;
 }
+select:focus,input:focus{
+  outline:none;
+  border-color:var(--secondary);
+  box-shadow:0 0 0 2px rgba(37,99,235,.15);
+}
 button{
   width:100%;
   padding:12px;
@@ -78,6 +82,14 @@ button{
   font-size:15px;
   cursor:pointer;
   border:none;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  box-shadow:0 6px 14px rgba(37,99,235,.35);
+}
+button:hover{
+  background:#1d4ed8;
 }
 .success{
   margin-top:14px;
@@ -102,7 +114,10 @@ button{
 <body>
 <div class="box">
 
-<h2><i class="fa-solid fa-people-group"></i> Upload Beneficiary Details</h2>
+<h2>
+  <i class="fa-solid fa-people-group"></i>
+  Upload Beneficiary Details
+</h2>
 
 <label><i class="fa-solid fa-magnifying-glass"></i> Search Work</label>
 <input type="text" id="workSearch" placeholder="Type to filter work list">
@@ -111,21 +126,23 @@ button{
 <input list="workList" id="workName" placeholder="Select work">
 <datalist id="workList"></datalist>
 
-<select id="workSelect" style="display:none;"></select>
+<select id="workSelect" style="display:none;">
+  <option value="">Select work</option>
+</select>
 
-<label>Beneficiary ID Type</label>
+<label><i class="fa-solid fa-id-card"></i> Beneficiary ID Type</label>
 <select id="beneficiaryType">
   <option>Ration Card</option>
   <option>Bhamashah / Janaadhar</option>
 </select>
 
-<label>ID Number</label>
+<label><i class="fa-solid fa-hashtag"></i> ID Number</label>
 <input type="text" id="idNumber">
 
-<label>Beneficiary Name</label>
+<label><i class="fa-solid fa-user"></i> Beneficiary Name</label>
 <input type="text" id="beneficiaryName">
 
-<label>Category</label>
+<label><i class="fa-solid fa-layer-group"></i> Category</label>
 <select id="category">
   <option>SC</option>
   <option>ST</option>
@@ -134,80 +151,86 @@ button{
   <option>Other</option>
 </select>
 
-<label>ID Photo – Front Side</label>
-<input type="file" accept="image/*" onchange="readFront(this)">
+<label><i class="fa-solid fa-image"></i> ID Photo – Front Side</label>
+<input type="file" accept="image/*" capture="environment" onchange="readFront(this)">
 
-<label>ID Photo – Back Side</label>
-<input type="file" accept="image/*" onchange="readBack(this)">
+<label><i class="fa-solid fa-image"></i> ID Photo – Back Side</label>
+<input type="file" accept="image/*" capture="environment" onchange="readBack(this)">
 
-<label>Upload Document (PDF if any)</label>
+<label><i class="fa-solid fa-file-pdf"></i> Upload Document (PDF if any)</label>
 <input type="file" accept="application/pdf" onchange="readPdf(this)">
 
-<button onclick="submitForm()">Save Entry</button>
+<button onclick="submitForm()">
+  <i class="fa-solid fa-cloud-arrow-up"></i>
+  Save Entry
+</button>
+
 <div class="success" id="msg"></div>
 
 <div class="footer-note">
-🌱 e-WorkMS 🌱 Developed By – 👷‍♂️ Er. Aman Godara
+🌱 e-WorkMS 🌱 Developed By – 👷‍♂️ Er. Aman Godara, AEn, WDSC, GoR
 </div>
 
 </div>
 
 <script>
-/* 🔗 BASE APPS SCRIPT URL (no /exec duplication) */
+/* ================= CONFIG ================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbySfRHPqB5sY_N4QeLyfXffGaHJQcpT-2iHU03wapC6fpSKTt5AQWthe7ArdQr-DReZgQ/exec";
 
+/* ================= STATE ================= */
 let frontPhoto=null, backPhoto=null, pdfFile=null;
 let allWorks=[], usedBeneficiaries=[];
 
-const workList=document.getElementById("workList");
-const workSelect=document.getElementById("workSelect");
 const workSearch=document.getElementById("workSearch");
+const workList=document.getElementById("workList");
+const workInput=document.getElementById("workName");
+const workSelect=document.getElementById("workSelect");
+const msg=document.getElementById("msg");
 
-/* 📥 LOAD WORK LIST (FIXED) */
+/* ================= LOAD WORK LIST ================= */
 fetch(API_URL+"?api=1&action=getWorks")
 .then(r=>r.json())
 .then(list=>{
-  allWorks = Array.isArray(list) ? list : [];
+  allWorks=list||[];
   renderWorks(allWorks);
 });
 
-/* 📥 LOAD USED BENEFICIARIES (FIXED NAME) */
+/* ================= LOAD USED ================= */
 fetch(API_URL+"?api=1&action=getUploaded")
 .then(r=>r.json())
-.then(d=>{
-  usedBeneficiaries = Array.isArray(d) ? d : [];
-});
+.then(list=>usedBeneficiaries=list||[]);
 
 function renderWorks(arr){
   workList.innerHTML="";
   workSelect.innerHTML='<option value="">Select work</option>';
+
   arr.forEach(w=>{
     const o=document.createElement("option");
     o.value=w;
     workList.appendChild(o);
 
     const s=document.createElement("option");
-    s.value=w;
-    s.textContent=w;
+    s.value=w; s.textContent=w;
     workSelect.appendChild(s);
   });
 }
 
-/* 🔍 SEARCH FILTER */
+/* ================= SEARCH ================= */
 workSearch.oninput=()=>{
   const q=workSearch.value.toLowerCase();
   renderWorks(allWorks.filter(w=>w.toLowerCase().includes(q)));
 };
 
-/* 📱 MOBILE DROPDOWN FIX */
-if(/Android|iPhone|iPad/i.test(navigator.userAgent)){
-  workSelect.style.display="block";
+/* ================= MOBILE FIX ================= */
+if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
+  workInput.style.display="none";
   workList.style.display="none";
-  workSelect.onchange=()=>workName.value=workSelect.value;
+  workSelect.style.display="block";
+  workSelect.onchange=()=>workInput.value=workSelect.value;
 }
 
-/* FILE READERS */
+/* ================= FILE READERS ================= */
 function readFront(i){readFile(i,f=>frontPhoto=f);}
 function readBack(i){readFile(i,f=>backPhoto=f);}
 function readPdf(i){readFile(i,f=>pdfFile=f);}
@@ -218,26 +241,24 @@ function readFile(i,cb){
   r.readAsDataURL(i.files[0]);
 }
 
-/* 🚀 SUBMIT */
+/* ================= SUBMIT ================= */
 function submitForm(){
-  if(!workName.value||!idNumber.value){
-    alert("Required fields missing");
-    return;
+  if(!workInput.value||!idNumber.value){
+    alert("Work Name & ID Number required"); return;
   }
 
-  const key = beneficiaryType.value+"|"+idNumber.value;
+  const key=beneficiaryType.value+"|"+idNumber.value;
   if(usedBeneficiaries.includes(key)){
-    alert("This beneficiary is already uploaded");
-    return;
+    alert("Already uploaded"); return;
   }
 
   msg.innerText="Uploading…";
 
   fetch(API_URL,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
-      workName:workName.value,
+      workName:workInput.value,
       beneficiaryType:beneficiaryType.value,
       idNumber:idNumber.value,
       beneficiaryName:beneficiaryName.value,
@@ -249,10 +270,18 @@ function submitForm(){
   })
   .then(r=>r.json())
   .then(res=>{
-    msg.innerText =
-      res && res.status==="SUCCESS"
-      ? "✔ Entry Saved Successfully"
-      : "❌ " + (res.message || "Failed");
+    if(res.status==="SUCCESS"){
+      msg.innerText="✔ Entry Saved Successfully";
+      usedBeneficiaries.push(key);
+      workSearch.value="";
+      workInput.value="";
+      workSelect.value="";
+      idNumber.value="";
+      beneficiaryName.value="";
+      frontPhoto=backPhoto=pdfFile=null;
+    }else{
+      msg.innerText="❌ "+(res.message||"Failed");
+    }
   })
   .catch(()=>{
     msg.innerText="❌ Server error";
